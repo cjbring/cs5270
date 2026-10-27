@@ -9,9 +9,9 @@ class RequestProcessor:
         self.storage_strategy = storage_strategy
 
     def process(self, request: WidgetRequest) -> None:
-        if request.type == "WidgetCreateRequest":
+        if request.type in ("create", "WidgetCreateRequest"):
             self.storage_strategy.store_widget(request)
-        elif request.type in ("WidgetDeleteRequest", "WidgetUpdateRequest"):
+        elif request.type in ("delete", "update", "WidgetDeleteRequest", "WidgetUpdateRequest"):
             logger.info(f"Request type '{request.type}' ignored for HW6.")
         else:
             logger.error(f"Unknown request type '{request.type}'")
