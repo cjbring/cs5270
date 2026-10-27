@@ -39,7 +39,7 @@ def test_dynamodb_storage_flattening():
 
     storage = DynamoDbWidgetStorage(mock_resource, "widgets")
     req = WidgetRequest(
-        type="WidgetCreateRequest",
+        type="create",
         request_id="r-2",
         widget_id="w-2",
         owner="Bob",
@@ -49,7 +49,7 @@ def test_dynamodb_storage_flattening():
 
     mock_table.put_item.assert_called_once()
     called_item = mock_table.put_item.call_args[1]["Item"]
-    assert called_item["widget_id"] == "w-2"
+    assert called_item["id"] == "w-2"
     assert called_item["owner"] == "Bob"
     assert called_item["size"] == "large"
     assert called_item["weight"] == "10lbs"
