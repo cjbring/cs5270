@@ -1,7 +1,3 @@
-import pytest
-from consumer.models import WidgetRequest
-from consumer.storage import DynamoDbWidgetStorage
-from unittest.mock import MagicMock
 import json
 from unittest.mock import MagicMock
 import pytest
@@ -19,8 +15,18 @@ def test_s3_key_formatting():
     )
     assert req.get_s3_key() == "widgets/john-doe-smith/w-999"
 
-def test_json_parsing_success():
-    raw_json = '''{
+def test_s3_key_formatting_whitespace_edge_cases():
+    req = WidgetRequest(
+        type="create",
+        request_id="r-102",
+        widget_id="w-123",
+        owner="   Mary   Jane   Watson   ",
+    )
+    assert req.get_s3_key() == "widgets/mary-jane-watson/w-123"
+
+
+def test_json_parsing_full_payload():
+    raw_json = """{
         "type": "WidgetCreateRequest",
         "requestId": "req-1",
         "widgetId": "wid-1",
@@ -28,11 +34,33 @@ def test_json_parsing_success():
         "label": "Test Widget",
         "description": "A demo widget",
         "otherAttributes": [{"name": "color", "value": "red"}]
-    }'''
+    }"""
     req = WidgetRequest.from_json(raw_json)
     assert req.type == "WidgetCreateRequest"
+    assert req.request_id == "req-1"
     assert req.widget_id == "wid-1"
-    assert req.other_attributes[0]["value"] == "red"
+    assert req.owner == "Alice Wonderland"
+    assert req.label == "Test Widget"
+    assert req.description == "A demo widget"
+    assert req.other_attributes == [{"name": "color", "value": "red"}]
+
+
+def test_json_parsing_minimal_payload():
+    raw_json = """{
+        "type": "create",
+        "requestId": "req-minimal",
+        "widgetId": "wid-minimal",
+        "owner": "Bob Builder"
+    }"""
+    req = WidgetRequest.from_json(raw_json)
+    assert req.widget_id == "wid-minimal"
+    assert req.label is None
+    assert req.description is None
+    assert req.other_attributes == []
+
+def test_malformed_json_raises():
+    with pytest.raises(json.JSONDecodeError):
+        WidgetRequest.from_json("{not valid json")
 
 def test_missing_required_field_raises():
     invalid_json = '{"type": "WidgetCreateRequest", "requestId": "r-1"}'
@@ -84,6 +112,37 @@ def test_s3_storage_puts_expected_object():
     body = json.loads(kwargs["Body"].decode("utf-8"))
     assert body["id"] == "wid-456"
     assert body["owner"] == "Alice Doe"
+
+def test_dynamodb_storage_optional_fields_none():
+    mock_resource = MagicMock()
+    mock_table = MagicMock()
+    mock_resource.Table.return_value = mock_table
+
+    storage = DynamoDbWidgetStorage(mock_resource, "widgets")
+    req = WidgetRequest(
+        type="create",
+        request_id="r-3",
+        widget_id="w-3",
+        owner="NoOptionals",
+        label=None,
+        description=None,
+        other_attributes=[],
+    )
+    storage.store_widget(req)
+
+    mock_table.put_item.assert_called_once()
+    called_item = mock_table.put_item.call_args[1]["Item"]
+    assert called_item["id"] == "w-3"
+    assert called_item["owner"] == "NoOptionals"
+
+@pytest.mark.parametrize("create_type", ["create", "WidgetCreateRequest"])
+def test_processor_processes_valid_create_types(create_type):
+    mock_storage = MagicMock()
+    processor = RequestProcessor(mock_storage)
+
+    req = WidgetRequest(type=create_type, request_id="1", widget_id="w-1", owner="Bob")
+    processor.process(req)
+    mock_storage.store_widget.assert_called_once_with(req)
 
 def test_processor_handles_ignored_and_unknown_types(caplog):
     mock_storage = MagicMock()
