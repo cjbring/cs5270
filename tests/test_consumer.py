@@ -61,7 +61,7 @@ def test_dynamodb_storage_flattening():
     assert called_item["size"] == "large"
     assert called_item["weight"] == "10lbs"
 
-    def test_s3_storage_puts_expected_object():
+def test_s3_storage_puts_expected_object():
     mock_s3 = MagicMock()
     storage = S3WidgetStorage(mock_s3, "target-web-bucket")
     
@@ -85,42 +85,42 @@ def test_dynamodb_storage_flattening():
     assert body["id"] == "wid-456"
     assert body["owner"] == "Alice Doe"
 
-    def test_processor_handles_ignored_and_unknown_types(caplog):
-        mock_storage = MagicMock()
-        processor = RequestProcessor(mock_storage)
-        
-        # Test update ignored
-        update_req = WidgetRequest(type="update", request_id="1", widget_id="2", owner="Bob")
-        processor.process(update_req)
-        mock_storage.store_widget.assert_not_called()
-        
-        # Test unknown type error log
-        bad_req = WidgetRequest(type="invalid_action", request_id="1", widget_id="2", owner="Bob")
-        processor.process(bad_req)
-        mock_storage.store_widget.assert_not_called()
+def test_processor_handles_ignored_and_unknown_types(caplog):
+    mock_storage = MagicMock()
+    processor = RequestProcessor(mock_storage)
+    
+    # Test update ignored
+    update_req = WidgetRequest(type="update", request_id="1", widget_id="2", owner="Bob")
+    processor.process(update_req)
+    mock_storage.store_widget.assert_not_called()
+    
+    # Test unknown type error log
+    bad_req = WidgetRequest(type="invalid_action", request_id="1", widget_id="2", owner="Bob")
+    processor.process(bad_req)
+    mock_storage.store_widget.assert_not_called()
 
-    def test_retriever_empty_bucket():
-        mock_s3 = MagicMock()
-        mock_s3.list_objects_v2.return_value = {}
-        retriever = S3RequestRetriever(mock_s3, "test-bucket")
-        assert retriever.poll_request() is None
+def test_retriever_empty_bucket():
+    mock_s3 = MagicMock()
+    mock_s3.list_objects_v2.return_value = {}
+    retriever = S3RequestRetriever(mock_s3, "test-bucket")
+    assert retriever.poll_request() is None
 
-    def test_retriever_reads_and_deletes():
-        mock_s3 = MagicMock()
-        mock_s3.list_objects_v2.return_value = {"Contents": [{"Key": "req-1.json"}]}
-        sample_json = json.dumps({
-            "type": "create",
-            "requestId": "req-1",
-            "widgetId": "wid-1",
-            "owner": "Charlie Brown"
-        }).encode("utf-8")
-        
-        mock_body = MagicMock()
-        mock_body.read.return_value = sample_json
-        mock_s3.get_object.return_value = {"Body": mock_body}
-        
-        retriever = S3RequestRetriever(mock_s3, "source-bucket")
-        req = retriever.poll_request()
-        
-        assert req.widget_id == "wid-1"
-        mock_s3.delete_object.assert_called_once_with(Bucket="source-bucket", Key="req-1.json")
+def test_retriever_reads_and_deletes():
+    mock_s3 = MagicMock()
+    mock_s3.list_objects_v2.return_value = {"Contents": [{"Key": "req-1.json"}]}
+    sample_json = json.dumps({
+        "type": "create",
+        "requestId": "req-1",
+        "widgetId": "wid-1",
+        "owner": "Charlie Brown"
+    }).encode("utf-8")
+    
+    mock_body = MagicMock()
+    mock_body.read.return_value = sample_json
+    mock_s3.get_object.return_value = {"Body": mock_body}
+    
+    retriever = S3RequestRetriever(mock_s3, "source-bucket")
+    req = retriever.poll_request()
+    
+    assert req.widget_id == "wid-1"
+    mock_s3.delete_object.assert_called_once_with(Bucket="source-bucket", Key="req-1.json")
