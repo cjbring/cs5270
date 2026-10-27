@@ -5,6 +5,7 @@ import boto3
 from .retriever import S3RequestRetriever
 from .storage import S3WidgetStorage, DynamoDbWidgetStorage
 from .processor import RequestProcessor
+import os
 
 def setup_logging(log_filename: str = "consumer.log"):
     logging.basicConfig(
@@ -39,7 +40,8 @@ def main():
     else:
         if not args.table_name:
             parser.error("--table-name required for dynamodb target")
-        dynamodb = boto3.resource("dynamodb")
+        region = os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
+        dynamodb = boto3.resource("dynamodb", region_name=region)
         storage = DynamoDbWidgetStorage(dynamodb, args.table_name)
 
     processor = RequestProcessor(storage)
