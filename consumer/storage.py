@@ -35,9 +35,7 @@ class DynamoDbWidgetStorage(WidgetStorageStrategy):
         logger.info(f"Writing widget {request.widget_id} to DynamoDB table '{self.table_name}'")
         item = {
             "id": request.widget_id,
-            "owner": request.owner,
-            "label": request.label,
-            "description": request.description,
+            "owner": request.owner
         }
         if request.label:
             item["label"] = request.label
