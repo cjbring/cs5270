@@ -52,7 +52,7 @@ class SqsRequestRetriever(RequestRetriever):
         else:
             resp = self.sqs_client.get_queue_url(QueueName=queue_name_or_url)
             self.queue_url = resp["QueueUrl"]
-
+            
         self._buffer: Deque[Tuple[str, str, str]] = deque()
         self._in_flight_handles: dict[str, str] = {}
 

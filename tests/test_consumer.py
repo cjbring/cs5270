@@ -337,3 +337,28 @@ def test_sqs_retriever_batches_caches_and_deletes():
 
     retriever.acknowledge_request(r2)
     assert mock_sqs.delete_message.call_count == 2
+
+def test_s3_storage_update_missing_widget_logs_warning():
+    mock_s3 = MagicMock()
+    mock_s3.get_object.side_effect = ClientError(
+        {"Error": {"Code": "NoSuchKey", "Message": "Not Found"}}, "GetObject"
+    )
+
+    storage = S3WidgetStorage(mock_s3, "target-web-bucket")
+    req = WidgetRequest(type="update", request_id="r-9", widget_id="missing-1", owner="Alice", label="New")
+
+    storage.update_widget(req)
+    mock_s3.put_object.assert_not_called()
+
+
+def test_dynamodb_storage_update_missing_widget_logs_warning():
+    mock_resource = MagicMock()
+    mock_table = MagicMock()
+    mock_resource.Table.return_value = mock_table
+    mock_table.get_item.return_value = {}
+
+    storage = DynamoDbWidgetStorage(mock_resource, "widgets")
+    req = WidgetRequest(type="update", request_id="r-10", widget_id="missing-2", owner="Bob", label="New")
+
+    storage.update_widget(req)
+    mock_table.put_item.assert_not_called()
