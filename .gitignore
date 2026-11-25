@@ -4,7 +4,7 @@ __pycache__/
 *.log
 venv/
 .vscode/
-
+docker.env
 __pycache__/
 *.pyc
 venv/
