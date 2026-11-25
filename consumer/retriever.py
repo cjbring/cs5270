@@ -78,6 +78,7 @@ class SqsRequestRetriever(RequestRetriever):
         self._in_flight_handles[req.request_id] = receipt_handle
         return req
 
+
     def acknowledge_request(self, request: WidgetRequest) -> None:
         receipt_handle = self._in_flight_handles.pop(request.request_id, None)
         if receipt_handle:
