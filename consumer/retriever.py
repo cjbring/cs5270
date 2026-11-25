@@ -17,6 +17,8 @@ class RequestRetriever(abc.ABC):
         pass
 
 
+
+
 class S3RequestRetriever(RequestRetriever):
     def __init__(self, s3_client, source_bucket: str):
         self.s3_client = s3_client
