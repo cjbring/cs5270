@@ -12,3 +12,6 @@ venv/
 __pycache__/
 *.pyc
 venv/
+
+docker.env
+*.log
